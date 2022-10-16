@@ -27,6 +27,7 @@ def parse_xml(xml):
         w = float(xmlbox.find("w").text)
         h = float(xmlbox.find("h").text)
         angle = float(xmlbox.find("angle").text)
+        name = obj.find("name").text
         # if w < h:
         if False:
             w, h = h, w
@@ -42,7 +43,7 @@ def parse_xml(xml):
         y3 = cy - (w / 2) * math.sin(angle) - (h / 2) * math.cos(angle)
         x4 = cx + (w / 2) * math.cos(angle) + (h / 2) * math.sin(angle)
         y4 = cy + (w / 2) * math.sin(angle) - (h / 2) * math.cos(angle)
-        boxes.append([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])
+        boxes.append([(x1, y1), (x2, y2), (x3, y3), (x4, y4), name])
         # break
     return boxes
 
@@ -55,7 +56,7 @@ def parse_txt(txt):
         if len(sp) < 9:
             continue
         b = [float(v) for v in sp[:8]]
-        boxes.append([(b[0], b[1]), (b[2], b[3]), (b[4], b[5]), (b[6], b[7])])
+        boxes.append([(b[0], b[1]), (b[2], b[3]), (b[4], b[5]), (b[6], b[7]), sp[8]])
     return boxes
 
 
@@ -66,9 +67,12 @@ def show_obb(image: Path, anno: Path):
         boxes = parse_txt(open(anno))
 
     img = cv2.imread(str(image))
+    w, h = img.shape[1], img.shape[0]
+    maxlen = max(w, h)
+    thickness = maxlen // 500
     for box in boxes:
-        box = np.array(box, np.int32)
-        cv2.polylines(img, [box], isClosed=True, color=(0, 255, 0), thickness=1)
+        box = np.array(box[:4], np.int32)
+        cv2.polylines(img, [box], isClosed=True, color=(0, 255, 0), thickness=thickness)
     cv2.namedWindow("image", cv2.WINDOW_NORMAL)
     cv2.imshow("image", img)
     cv2.waitKey(0)
