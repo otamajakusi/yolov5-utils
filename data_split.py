@@ -1,38 +1,45 @@
-import os
 import glob
+import os
 import random
+import re
+from pathlib import Path
 
 
 def get_ext(basename, exts=["jpg", "png"]):
     for ext in exts:
-        if os.path.exists(f"{basename}.{ext.upper()}"):
+        if Path(basename).with_suffix(f".{ext.upper()}").exists():
             return ext.upper()
-        if os.path.exists(f"{basename}.{ext.lower()}"):
+        if Path(basename).with_suffix(f".{ext.lower()}").exists():
             return ext.lower()
     return None
 
 
-def split_data(dataset_path, out_path,percentage_test=20):
+def split_data(dataset_path, out_path, percentage_test=20):
     # Populate the folders
     p = percentage_test / 100
 
-    os.makedirs(f"{out_path}/images/valid", exist_ok=True)
-    os.makedirs(f"{out_path}/labels/valid", exist_ok=True)
-    os.makedirs(f"{out_path}/images/train", exist_ok=True)
-    os.makedirs(f"{out_path}/labels/train", exist_ok=True)
-    for pathAndFilename in glob.iglob(os.path.join(dataset_path, "*.txt")):
-        title, ext = os.path.splitext(os.path.basename(pathAndFilename))
-        img_ext = get_ext(f"{dataset_path}/{title}")
-        if img_ext is None:
-            print(f"WARN: image not found for {pathAndFilename}")
-            continue
+    out_path = Path(out_path)
+    (out_path / "images" / "valid").mkdir(parents=True, exist_ok=True)
+    (out_path / "labels" / "valid").mkdir(parents=True, exist_ok=True)
+    (out_path / "images" / "train").mkdir(parents=True, exist_ok=True)
+    (out_path / "labels" / "train").mkdir(parents=True, exist_ok=True)
 
+    dataset_path = Path(dataset_path)
+    pa = re.compile(r"\.txt$", re.IGNORECASE)
+    for path in dataset_path.rglob("*"):
+        if not path.is_file() or not pa.search(path.name):
+            continue
+        base_path = path.parent / path.stem
+        ext = get_ext(base_path)
+        if ext is None:
+            print(f"WARN: image not found for {path}")
+            continue
         if random.random() <= p:
-            os.system(f"cp {dataset_path}/{title}.{img_ext} {out_path}/images/valid")
-            os.system(f"cp {dataset_path}/{title}.txt {out_path}/labels/valid")
+            os.system(f"cp {str(base_path)}.{ext} {out_path}/images/valid")
+            os.system(f"cp {str(path)} {out_path}/labels/valid")
         else:
-            os.system(f"cp {dataset_path}/{title}.{img_ext} {out_path}/images/train")
-            os.system(f"cp {dataset_path}/{title}.txt {out_path}/labels/train")
+            os.system(f"cp {str(base_path)}.{ext} {out_path}/images/train")
+            os.system(f"cp {str(path)} {out_path}/labels/train")
 
 
 if __name__ == "__main__":
